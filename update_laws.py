@@ -47,8 +47,16 @@ def fetch_law_body():
             params = {"OC": OC_ID, "target": "law", "query": name, "type": "XML"}
             try:
                 search_res = requests.get(SEARCH_URL, params=params)
-                mst = ET.fromstring(search_res.content).findtext(".//법령일련번호")
-                if not mst: 
+                search_root = ET.fromstring(search_res.content)
+                # 검색 결과에 이름이 비슷한 법령이 여러 건 반환될 수 있으므로
+                # 법령명이 정확히 일치하는 항목만 선택한다. (예: '지방세법' 검색 시 '지방교부세법'이 함께 반환됨)
+                mst = None
+                for law in search_root.findall(".//law"):
+                    law_name = (law.findtext("법령명한글") or "").strip()
+                    if law_name == name:
+                        mst = law.findtext("법령일련번호")
+                        break
+                if not mst:
                     print(f"  └ ⚠️ '{name}'의 법령일련번호를 찾을 수 없음.")
                     continue
 
@@ -98,8 +106,15 @@ def fetch_admrul_body():
             params = {"OC": OC_ID, "target": "admrul", "query": name, "type": "XML"}
             try:
                 search_res = requests.get(SEARCH_URL, params=params)
-                amrst = ET.fromstring(search_res.content).findtext(".//행정규칙일련번호")
-                if not amrst: 
+                search_root = ET.fromstring(search_res.content)
+                # 검색 결과 중 행정규칙명이 정확히 일치하는 항목만 선택한다.
+                amrst = None
+                for admrul in search_root.findall(".//admrul"):
+                    rule_name = (admrul.findtext("행정규칙명") or "").strip()
+                    if rule_name == name:
+                        amrst = admrul.findtext("행정규칙일련번호")
+                        break
+                if not amrst:
                     print(f"  └ ⚠️ '{name}'의 행정규칙일련번호를 찾을 수 없음.")
                     continue
 
